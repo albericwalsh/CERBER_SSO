@@ -1,0 +1,112 @@
+Index: passenger_wsgi.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+># passenger_wsgi.py\r\nimport importlib\r\nimport sys\r\nfrom a2wsgi import ASGIMiddleware\r\n\r\nAPP_MODULE = \"app.main\"  # chemin vers ton module FastAPI\r\n\r\ndef load_app():\r\n    \"\"\"\r\n    Charge dynamiquement le module FastAPI et retourne l'application ASGI compatible WSGI.\r\n    \"\"\"\r\n    try:\r\n        if APP_MODULE in sys.modules:\r\n            # Si le module est déjà importé, on le recharge pour prendre en compte les changements\r\n            importlib.reload(sys.modules[APP_MODULE])\r\n        module = importlib.import_module(APP_MODULE)\r\n\r\n        # On récupère l'objet FastAPI depuis le module\r\n        return ASGIMiddleware(module.app)\r\n    except ImportError as e:\r\n        print(f\"Erreur lors du chargement du module {APP_MODULE}: {e}\")\r\n        sys.exit(1)\r\n\r\n# Variable globale que Passenger va utiliser comme entry point\r\napplication = load_app()\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/passenger_wsgi.py b/passenger_wsgi.py
+--- a/passenger_wsgi.py	(revision 70d0a5804180545acfdc8075ecfa63e6f83204c6)
++++ b/passenger_wsgi.py	(date 1755632474729)
+@@ -18,8 +18,7 @@
+         # On récupère l'objet FastAPI depuis le module
+         return ASGIMiddleware(module.app)
+     except ImportError as e:
+-        print(f"Erreur lors du chargement du module {APP_MODULE}: {e}")
+-        sys.exit(1)
++        return ["Error loading application: {}".format(e)]
+ 
+ # Variable globale que Passenger va utiliser comme entry point
+ application = load_app()
+Index: .idea/.gitignore
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/.gitignore b/.idea/.gitignore
+deleted file mode 100644
+--- a/.idea/.gitignore	(revision 70d0a5804180545acfdc8075ecfa63e6f83204c6)
++++ /dev/null	(revision 70d0a5804180545acfdc8075ecfa63e6f83204c6)
+@@ -1,10 +0,0 @@
+-# Default ignored files
+-/shelf/
+-/workspace.xml
+-# Editor-based HTTP Client requests
+-/httpRequests/
+-# Environment-dependent path to Maven home directory
+-/mavenHomeManager.xml
+-# Datasource local storage ignored files
+-/dataSources/
+-/dataSources.local.xml
+Index: .idea/vcs.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/vcs.xml b/.idea/vcs.xml
+deleted file mode 100644
+--- a/.idea/vcs.xml	(revision 70d0a5804180545acfdc8075ecfa63e6f83204c6)
++++ /dev/null	(revision 70d0a5804180545acfdc8075ecfa63e6f83204c6)
+@@ -1,6 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<project version="4">
+-  <component name="VcsDirectoryMappings">
+-    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+-  </component>
+-</project>
+\ No newline at end of file
+Index: .idea/modules.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/modules.xml b/.idea/modules.xml
+deleted file mode 100644
+--- a/.idea/modules.xml	(revision 70d0a5804180545acfdc8075ecfa63e6f83204c6)
++++ /dev/null	(revision 70d0a5804180545acfdc8075ecfa63e6f83204c6)
+@@ -1,8 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<project version="4">
+-  <component name="ProjectModuleManager">
+-    <modules>
+-      <module fileurl="file://$PROJECT_DIR$/SSO.iml" filepath="$PROJECT_DIR$/SSO.iml" />
+-    </modules>
+-  </component>
+-</project>
+\ No newline at end of file
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+deleted file mode 100644
+--- a/.idea/misc.xml	(revision 70d0a5804180545acfdc8075ecfa63e6f83204c6)
++++ /dev/null	(revision 70d0a5804180545acfdc8075ecfa63e6f83204c6)
+@@ -1,9 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<project version="4">
+-  <component name="Black">
+-    <option name="sdkName" value="Python 3.13" />
+-  </component>
+-  <component name="ProjectRootManager">
+-    <output url="file://$PROJECT_DIR$/out" />
+-  </component>
+-</project>
+\ No newline at end of file
+Index: .gitignore
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>SSO.iml
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.gitignore b/.gitignore
+--- a/.gitignore	(revision 70d0a5804180545acfdc8075ecfa63e6f83204c6)
++++ b/.gitignore	(date 1755632275682)
+@@ -1,1 +1,2 @@
+-SSO.iml
+\ No newline at end of file
++SSO.iml
++./idea
+\ No newline at end of file

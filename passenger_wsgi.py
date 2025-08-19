@@ -18,8 +18,7 @@ def load_app():
         # On récupère l'objet FastAPI depuis le module
         return ASGIMiddleware(module.app)
     except ImportError as e:
-        print(f"Erreur lors du chargement du module {APP_MODULE}: {e}")
-        sys.exit(1)
+        return ["Error loading application: {}".format(e)]
 
 # Variable globale que Passenger va utiliser comme entry point
 application = load_app()
