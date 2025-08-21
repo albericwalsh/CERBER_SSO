@@ -1,6 +1,7 @@
 # app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.database import check_db_connection
 
 # ------------------------------------------------------------
 # Crée l'application FastAPI
@@ -34,17 +35,18 @@ app.add_middleware(
 @app.get("/health")
 async def health():
     """Endpoint de santé (pour monitoring / debug)."""
-    return {"status": "ok"}
+    db_status = "ok" if check_db_connection() else "error"
+    return {
+        "status": "ok",
+        "database": db_status
+    }
 
 @app.get("/")
 async def root():
     """Page d'accueil simple."""
     return {"message": "🚀 SafePasseApp SSO en ligne !"}
 
-# Exemple route de test
-@app.get("/hello/{name}")
-async def hello(name: str):
-    return {"message": f"Hello {name} 👋"}
+
 
 # ------------------------------------------------------------
 # Point d'entrée local
