@@ -1,9 +1,12 @@
 # app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import OperationalError
+try:
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.exc import OperationalError
+except ImportError:
+    raise ImportError("Assurez-vous d'avoir installé les dépendances requises : sqlalchemy, pymysql, fastapi, uvicorn.")
 import os
 
 # ------------------------------------------------------------
