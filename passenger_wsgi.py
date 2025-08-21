@@ -26,6 +26,7 @@ def load_app():
                 traceback.print_exc()  # log complet côté serveur
                 start_response("500 Internal Server Error", [("Content-Type", "text/plain")])
                 response = b"Une erreur est survenue. Veuillez réessayer plus tard." + bytes(traceback.format_exc(), "utf-8")
+                return [response]
 
         return production_app
 
