@@ -11,3 +11,4 @@ a2wsgi~=1.10.10
 python-multipart==0.0.20
 sqlalchemy~=2.0.32
 sqlalchemy-utils==0.37.8
+pymysql~=1.0.3
