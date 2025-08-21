@@ -60,9 +60,9 @@ def check_db_connection():
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))  # ⚠️ utiliser text()
-        return True
-    except OperationalError:
-        return False
+        return "ok"
+    except OperationalError as e:
+        return "error: Database connection failed\n" + str(e)
 
 # ------------------------------------------------------------
 # Routes de base
@@ -70,19 +70,9 @@ def check_db_connection():
 @app.get("/health")
 async def health():
     """Endpoint de santé (pour monitoring / debug)."""
-    db_status = "ok" if check_db_connection() else "error"
-    if db_status != "error":
-    #     make a simple query (check if "CERBER_users" table exist and print his lenght) to ensure the database is responsive
-        try:
-            with engine.connect() as conn:
-                result = conn.execute(text("SELECT COUNT(*) FROM CERBER_users"))
-                count = result.scalar()
-                db_status = f"ok, CERBER_users table has {count} entries"
-        except OperationalError:
-            db_status = "error, unable to query CERBER_users table"
     return {
         "status": "ok",
-        "database": db_status
+        "database": check_db_connection()
     }
 
 @app.get("/")
