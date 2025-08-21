@@ -1,7 +1,10 @@
 # app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import check_db_connection
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import OperationalError
+import os
 
 # ------------------------------------------------------------
 # Crée l'application FastAPI
@@ -28,6 +31,34 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ------------------------------------------------------------
+# Configuration de la base de données
+# ------------------------------------------------------------
+
+DB_USER = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "3306")
+DB_NAME = os.getenv("DB_NAME", "safepasseapp")
+
+DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+# Create the SQLAlchemy engine and session
+try:
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+except Exception as e:
+    print(f"Error creating database engine: {e}")
+    raise
+
+def check_db_connection():
+    try:
+        with engine.connect() as conn:
+            conn.execute("SELECT 1")
+        return True
+    except OperationalError:
+        return False
 
 # ------------------------------------------------------------
 # Routes de base
