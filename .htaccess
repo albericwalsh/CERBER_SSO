@@ -1,0 +1,3 @@
+# .htaccess
+PassengerFriendlyErrorPages on
+PassengerAppEnv development
