@@ -1,7 +1,7 @@
 # app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import check_db_connection
+# from app.database import check_db_connection
 
 # ------------------------------------------------------------
 # Crée l'application FastAPI
@@ -35,10 +35,10 @@ app.add_middleware(
 @app.get("/health")
 async def health():
     """Endpoint de santé (pour monitoring / debug)."""
-    db_status = "ok" if check_db_connection() else "error"
+    # db_status = "ok" if check_db_connection() else "error"
     return {
         "status": "ok",
-        "database": db_status
+        # "database": db_status
     }
 
 @app.get("/")
