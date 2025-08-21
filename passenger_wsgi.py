@@ -1,4 +1,4 @@
-# passenger_wsgi.py - VERSION PRODUCTION
+# passenger_wsgi.py - VERSION DEV
 import importlib
 import sys
 import traceback
@@ -6,6 +6,8 @@ from a2wsgi import ASGIMiddleware
 
 APP_MODULE = "app.main"  # chemin vers ton module FastAPI
 
+# ⚡ Mode dev : affiche toutes les erreurs directement dans le navigateur
+DEV_MODE = True
 
 def load_app():
     try:
@@ -14,30 +16,30 @@ def load_app():
         module = importlib.import_module(APP_MODULE)
 
         if hasattr(module, "app"):
-            module.app.debug = False  # ⚠️ Désactiver le mode debug
+            module.app.debug = DEV_MODE  # Active le debug FastAPI si DEV_MODE
 
         app = ASGIMiddleware(module.app)
 
-        # Middleware WSGI qui loggue mais ne montre pas les erreurs aux clients
-        def production_app(environ, start_response):
+        def dev_app(environ, start_response):
             try:
                 return app(environ, start_response)
-            except Exception as e:
-                print(f"Erreur dans l'application : {e}")  # log côté serveur
-                traceback.print_exc()  # log complet côté serveur
+            except Exception:
+                # Log complet côté serveur
+                traceback.print_exc()
+                # Affiche la stacktrace dans le navigateur
+                tb = traceback.format_exc()
                 start_response("500 Internal Server Error", [("Content-Type", "text/plain")])
-                return [b"Une erreur est survenue. Veuillez réessayer plus tard."]
+                return [f"Erreur dans l'application :\n\n{tb}".encode("utf-8")]
 
-        return production_app
+        return dev_app
 
     except ImportError as e:
         print(f"Erreur d'importation du module {APP_MODULE}: {e}")
         traceback.print_exc()
-
         def error_app(environ, start_response):
+            tb = traceback.format_exc()
             start_response("500 Internal Server Error", [("Content-Type", "text/plain")])
-            return [b"Impossible de charger l'application."]
+            return [f"Impossible de charger l'application :\n\n{tb}".encode("utf-8")]
         return error_app
-
 
 application = load_app()
