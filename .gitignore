@@ -1,2 +1,14 @@
 SSO.iml
 ./idea
+.idea/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+*.class
+*.log
+*.jar
+*.war
+*.ear
+*.db
