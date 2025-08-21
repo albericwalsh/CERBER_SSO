@@ -71,6 +71,13 @@ def check_db_connection():
 async def health():
     """Endpoint de santé (pour monitoring / debug)."""
     db_status = "ok" if check_db_connection() else "error"
+    if db_status != "error":
+    #     make a simple query (check if "CERBER_users" table exist) to ensure the database is responsive
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1 FROM CERBER_users LIMIT 1"))
+        except OperationalError:
+            db_status = "error, unable to query CERBER_users table"
     return {
         "status": "ok",
         "database": db_status
