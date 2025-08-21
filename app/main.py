@@ -5,6 +5,7 @@ try:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
     from sqlalchemy.exc import OperationalError
+    from sqlalchemy import text
 except ImportError:
     raise ImportError("Assurez-vous d'avoir installé les dépendances requises : sqlalchemy, pymysql, fastapi, uvicorn.")
 import os
@@ -58,7 +59,7 @@ except Exception as e:
 def check_db_connection():
     try:
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            conn.execute(text("SELECT 1"))  # ⚠️ utiliser text()
         return True
     except OperationalError:
         return False
