@@ -22,19 +22,21 @@ def load_app():
         def production_app(environ, start_response):
             try:
                 return app(environ, start_response)
-            except Exception:
+            except Exception as e:
+                print(f"Erreur dans l'application : {e}")  # log côté serveur
                 traceback.print_exc()  # log complet côté serveur
                 start_response("500 Internal Server Error", [("Content-Type", "text/plain")])
-                return [b"Une erreur est survenue. Veuillez réessayer plus tard.\n"]
+                return [b"Une erreur est survenue. Veuillez réessayer plus tard."]
 
         return production_app
 
-    except Exception:
+    except ImportError as e:
+        print(f"Erreur d'importation du module {APP_MODULE}: {e}")
         traceback.print_exc()
 
         def error_app(environ, start_response):
             start_response("500 Internal Server Error", [("Content-Type", "text/plain")])
-            return [b"Impossible de charger l'application.\n"]
+            return [b"Impossible de charger l'application."]
         return error_app
 
 
