@@ -25,7 +25,7 @@ def load_app():
             except Exception:
                 traceback.print_exc()  # log complet côté serveur
                 start_response("500 Internal Server Error", [("Content-Type", "text/plain")])
-                return [b"Une erreur interne est survenue.\n", Exception]
+                response = b"Une erreur est survenue. Veuillez réessayer plus tard." + bytes(traceback.format_exc(), "utf-8")
 
         return production_app
 
@@ -34,7 +34,8 @@ def load_app():
 
         def error_app(environ, start_response):
             start_response("500 Internal Server Error", [("Content-Type", "text/plain")])
-            return [b"Impossible de charger l'application.\n", Exception]
+            response = b"Impossible de charger l'application.\n" + bytes(traceback.format_exc(), "utf-8")
+            return [response]
         return error_app
 
 
