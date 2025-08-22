@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -16,7 +18,8 @@ class UserOut(BaseModel):
     email: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
 
 class RegisterIn(BaseModel):
     username: str = Field(min_length=3, max_length=50)
@@ -25,3 +28,14 @@ class RegisterIn(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    is_admin: Optional[bool] = None
+
+class PasswordUpdatePayload(BaseModel):
+    old_password: str | None = None  # requis uniquement si user non-admin
+    new_password: str
+
+

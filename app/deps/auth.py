@@ -6,19 +6,48 @@ from app.database import get_db
 from app.models.user import User
 from app.services.auth_service import decode_access_token
 
+
 def _extract_bearer_token(request: Request) -> str:
     auth = request.headers.get("Authorization")
     if not auth or not auth.startswith("Bearer "):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing bearer token"
+        )
     return auth[7:]  # strip "Bearer "
 
+
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
+    """
+    Récupère l'utilisateur courant à partir du JWT access token.
+    """
     token = _extract_bearer_token(request)
     payload = decode_access_token(token)
-    user_id = payload.get("id") or payload.get("uid")
+
+    # compatibilité selon ce que tu mets dans le payload
+    user_id = payload.get("id") or payload.get("uid") or payload.get("sub")
     if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token sans identifiant")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token sans identifiant"
+        )
+
     user = db.get(User, user_id)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur introuvable")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Utilisateur introuvable"
+        )
     return user
+
+
+def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Vérifie que l'utilisateur courant est admin.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès réservé aux administrateurs"
+        )
+    return current_user

@@ -1,14 +1,15 @@
 # app/routes/auth.py
-from fastapi import HTTPException, APIRouter, Depends
+from fastapi import HTTPException, APIRouter, Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from starlette import status
 
 from app.database import get_db
-from app.models.user import UserProperty
-from app.schemas.auth import LoginRequest, TokenResponse, RegisterIn, RefreshRequest
+from app.models.user import UserProperty, User
+from app.schemas.auth import LoginRequest, TokenResponse, RegisterIn, RefreshRequest, UserUpdate, PasswordUpdatePayload
 from app.services.auth_service import authenticate_user, create_access_token, create_user, \
-    verify_refresh_token, create_refresh_token, hash_password, store_refresh_token_hash
-from app.deps.auth import get_current_user  # <-- NEW
+    verify_refresh_token, create_refresh_token, hash_password, store_refresh_token_hash, verify_password
+from app.deps.auth import get_current_user, get_current_admin_user  # <-- NEW
 
 router = APIRouter(tags=["Auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/sso/login")
@@ -64,12 +65,24 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
 # ---- Route protégée pour tester la dépendance ----
 @router.get("/me")
-def me(current_user = Depends(get_current_user)):
+def me(user: User = Depends(get_current_user)):
     return {
-        "id": current_user.id,
-        "username": current_user.username,
-        "email": current_user.email,
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "is_admin": user.is_admin
     }
+
+@router.get("/users")
+def list_users(db: Session = Depends(get_db), admin_user: User = Depends(get_current_admin_user)):
+    """
+    Liste tous les utilisateurs (admin uniquement)
+    """
+    users = db.query(User).all()
+    return [
+        {"id": u.id, "username": u.username, "email": u.email, "is_admin": u.is_admin}
+        for u in users
+    ]
 
 @router.post("/refresh", response_model=TokenResponse)
 def refresh_token(payload: RefreshRequest, db: Session = Depends(get_db)):
@@ -90,3 +103,196 @@ def refresh_token(payload: RefreshRequest, db: Session = Depends(get_db)):
         "refresh_token": new_refresh_token,
         "token_type": "bearer"
     }
+
+revoked_tokens = set()
+
+@router.post("/logout")
+def logout(refresh_token: str):
+    """
+    Invalide un refresh token
+    """
+    revoked_tokens.add(refresh_token)
+    return {"msg": "Token invalidé"}
+
+@router.get("/users")
+def list_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_admin_user)):
+    """
+    Liste des utilisateurs (admin uniquement)
+    """
+    users = db.query(User).all()
+    return [
+        {"id": u.id, "username": u.username, "email": u.email, "is_admin": u.is_admin}
+        for u in users
+    ]
+
+@router.post("/promote/{user_id}")
+def make_admin(
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_admin: User = Depends(get_current_admin_user)
+):
+    """
+    Promote un utilisateur en admin.
+    Accessible uniquement par un admin existant.
+    """
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Utilisateur introuvable"
+        )
+
+    if user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="L'utilisateur est déjà admin"
+        )
+
+    user.is_admin = True
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return {"message": f"L'utilisateur {user.username} est maintenant admin"}
+
+@router.delete("/promote/{user_id}")
+def unmake_admin(
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_admin: User = Depends(get_current_admin_user)
+):
+    """Retirer le rôle admin à un utilisateur."""
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    if not user.is_admin:
+        raise HTTPException(status_code=400, detail="Cet utilisateur n'est pas admin")
+
+    user.is_admin = False
+    db.commit()
+    db.refresh(user)
+    return {"message": f"L'utilisateur {user.username} n'est plus admin"}
+
+
+@router.delete("/{user_id}")
+def delete_user(
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_admin: User = Depends(get_current_admin_user)
+):
+    """Supprimer un utilisateur (action réservée aux admins)."""
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+
+    db.delete(user)
+    db.commit()
+    return {"message": f"Utilisateur {user.username} supprimé avec succès"}
+
+from sqlalchemy import select
+
+@router.put("/users/{user_id}")
+def update_user(
+        user_id: int,
+        payload: UserUpdate,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+):
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+
+    # --- Si utilisateur courant n'est pas admin ---
+    if not current_user.is_admin:
+        if current_user.id != user_id:
+            raise HTTPException(status_code=403, detail="Vous ne pouvez modifier que votre profil")
+        if payload.is_admin is not None and payload.is_admin != user.is_admin:
+            raise HTTPException(status_code=403, detail="Vous ne pouvez pas modifier le rôle admin")
+
+    # --- Vérification unicité username ---
+    if payload.username and payload.username != user.username:
+        exists = db.execute(
+            select(User).where(User.username == payload.username)
+        ).scalar_one_or_none()
+        if exists:
+            raise HTTPException(status_code=400, detail="Username déjà utilisé")
+        user.username = payload.username
+
+    # --- Vérification unicité email ---
+    if payload.email and payload.email != user.email:
+        exists = db.execute(
+            select(User).where(User.email == payload.email)
+        ).scalar_one_or_none()
+        if exists:
+            raise HTTPException(status_code=400, detail="Email déjà utilisé")
+        user.email = payload.email
+
+    if current_user.is_admin and payload.is_admin is not None:
+        user.is_admin = payload.is_admin
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "is_admin": user.is_admin,
+    }
+
+@router.put("/users/{user_id}/password")
+def update_user_password(
+        user_id: int,
+        payload: PasswordUpdatePayload,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+
+    # Si l'utilisateur n'est pas admin
+    if not current_user.is_admin:
+        # Il ne peut changer que son propre mot de passe
+        if current_user.id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Vous ne pouvez modifier que votre propre mot de passe"
+            )
+        # Vérification de l'ancien mot de passe
+        if not payload.old_password or not verify_password(payload.old_password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Mot de passe actuel incorrect"
+            )
+
+    # Hash du nouveau mot de passe
+    user.password_hash = hash_password(payload.new_password)  # <- corrigé ici
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return {"msg": "Mot de passe mis à jour avec succès"}
+
+@router.get("/validate-token")
+def validate_token(request: Request):
+    """
+    Vérifie si le token Bearer dans les headers est valide.
+    """
+    from app.services.auth_service import decode_access_token
+
+    auth = request.headers.get("Authorization")
+    if not auth or not auth.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+
+    token = auth[7:]  # enlever "Bearer "
+
+    try:
+        payload = decode_access_token(token)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Token invalide: {str(e)}")
+
+    return {"valid": True, "user_id": payload.get("id") or payload.get("uid")}
+
+

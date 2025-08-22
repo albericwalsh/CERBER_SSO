@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Admin</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2em;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 2em;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1em;
+        }
+
+        th, td {
+            padding: 0.5em;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        button {
+            padding: 0.3em 0.6em;
+            margin: 0.1em;
+            cursor: pointer;
+            border-radius: 5px;
+            border: none;
+        }
+
+        .promote {
+            background: #28a745;
+            color: white;
+        }
+
+        .demote {
+            background: #ffc107;
+            color: black;
+        }
+
+        .delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .edit {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .refresh {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .logout {
+            background: #6c757d;
+            color: white;
+        }
+
+        #message {
+            margin-top: 1em;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* Fenêtre modale */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 2em;
+            border-radius: 10px;
+            width: 400px;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            font-size: 22px;
+            cursor: pointer;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 0.5em;
+            margin: 0.5em 0;
+        }
+
+        .save {
+            background: #28a745;
+            color: white;
+            width: 100%;
+            padding: 0.6em;
+            margin-top: 1em;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Dashboard Admin</h1>
+
+    <div>
+        <button class="refresh" id="refreshBtn">Refresh Token</button>
+        <button class="logout" id="logoutBtn">Se déconnecter</button>
+    </div>
+
+    <table id="usersTable">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Admin</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- Users will be loaded here -->
+        </tbody>
+    </table>
+
+    <div id="message"></div>
+</div>
+
+<!-- Fenêtre modale pour éditer un utilisateur -->
+<div id="editModal"
+     style="display:none; position:fixed; top:20%; left:50%; transform:translateX(-50%); background:white; padding:1.5em; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:1000;">
+    <h3>Modifier l'utilisateur</h3>
+    <form id="editForm">
+        <input type="hidden" id="editUserId">
+        <label>Username :</label><br>
+        <label for="editUsername"></label><input type="text" id="editUsername"><br><br>
+
+        <label>Email :</label><br>
+        <label for="editEmail"></label><input type="email" id="editEmail"><br><br>
+
+        <label>Nouveau mot de passe (optionnel) :</label><br>
+        <label for="editPassword"></label><input type="password" id="editPassword"><br><br>
+
+        <button type="submit">Enregistrer</button>
+        <button type="button" onclick="closeModal()">Annuler</button>
+    </form>
+</div>
+
+<script>
+    async function fetchUsers() {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            window.location.href = '/';
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/v1/sso/users', {
+                headers: {'Authorization': 'Bearer ' + token}
+            });
+            if (!res.ok) {
+                displayMessage('Erreur récupération utilisateurs');
+                return;
+            }
+            const users = await res.json();
+            const tbody = document.querySelector('#usersTable tbody');
+            tbody.innerHTML = '';
+
+            users.forEach(user => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+        <td>${user.id}</td>
+        <td>${user.username}</td>
+        <td>${user.email}</td>
+        <td>${user.is_admin ? '🟢' : '🔘'}</td>
+        <td>
+            <button onclick='openEditModal(${JSON.stringify(user)})' title="modifier">✏️</button>
+            <button class="promote" onclick="toggleAdmin(${user.id}, ${user.is_admin})" title="${user.is_admin ? 'Rétrograder' : 'Promouvoir'}">
+                ${user.is_admin ? '⛔' : '🔼'}
+            </button>
+            <button class="delete" onclick="deleteUser(${user.id})" title="supprimer">🗑️</button>
+        </td>
+    `;
+                tbody.appendChild(tr);
+            });
+        } catch (err) {
+            console.error(err);
+            displayMessage('Erreur réseau');
+        }
+    }
+
+    async function toggleAdmin(userId, isAdmin) {
+        const token = localStorage.getItem('access_token');
+        const method = isAdmin ? 'DELETE' : 'POST';
+        try {
+            const res = await fetch(`/api/v1/sso/promote/${userId}`, {
+                method: method,
+                headers: {'Authorization': 'Bearer ' + token}
+            });
+            if (res.ok) {
+                displayMessage('Action réussie', false);
+                fetchUsers();
+            } else {
+                const data = await res.json();
+                displayMessage(data.detail || 'Erreur');
+            }
+        } catch (err) {
+            console.error(err);
+            displayMessage('Erreur réseau');
+        }
+    }
+
+    async function deleteUser(userId) {
+        const token = localStorage.getItem('access_token');
+        if (!confirm('Confirmer la suppression de cet utilisateur ?')) return;
+        try {
+            const res = await fetch(`/api/v1/sso/${userId}`, {
+                method: 'DELETE',
+                headers: {'Authorization': 'Bearer ' + token}
+            });
+            if (res.ok) {
+                displayMessage('Utilisateur supprimé', false);
+                fetchUsers();
+            } else {
+                const data = await res.json();
+                displayMessage(data.detail || 'Erreur');
+            }
+        } catch (err) {
+            console.error(err);
+            displayMessage('Erreur réseau');
+        }
+    }
+
+    // Ouvre la fenêtre modal
+    function openEditModal(user) {
+        // user est un objet JSON (id, username, email, is_admin)
+        document.getElementById('editUserId').value = user.id;
+        document.getElementById('editUsername').value = user.username;
+        document.getElementById('editEmail').value = user.email;
+        document.getElementById('editPassword').value = ''; // reset du champ password
+        document.getElementById('editModal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('access_token');
+        const id = document.getElementById('editUserId').value;
+        const username = document.getElementById('editUsername').value;
+        const email = document.getElementById('editEmail').value;
+        const password = document.getElementById('editPassword').value;
+
+        try {
+            // Update des infos de base
+            let res = await fetch(`/api/v1/sso/users/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({username, email})
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                displayMessage(data.detail || 'Erreur lors de la mise à jour');
+                return;
+            }
+
+            // Si mot de passe fourni → requête séparée
+            if (password) {
+                res = await fetch(`/api/v1/sso/users/${id}/password`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({new_password: password})
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    displayMessage(data.detail || 'Erreur lors du changement de mot de passe');
+                    return;
+                }
+            }
+
+            displayMessage('Utilisateur mis à jour avec succès', false);
+            closeModal();
+            fetchUsers(); // recharge la liste
+        } catch (err) {
+            console.error(err);
+            displayMessage('Erreur réseau');
+        }
+    });
+
+    async function refreshToken() {
+        const refresh_token = localStorage.getItem('refresh_token');
+        if (!refresh_token) {
+            displayMessage('Aucun refresh token trouvé');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/v1/sso/refresh', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({refresh_token})
+            });
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem('access_token', data.access_token);
+                displayMessage('Token rafraîchi avec succès', false);
+            } else {
+                displayMessage(data.detail || 'Erreur de refresh token');
+            }
+        } catch (err) {
+            console.error(err);
+            displayMessage('Erreur réseau');
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/';
+    }
+
+    function displayMessage(msg, isError = true) {
+        const msgDiv = document.getElementById('message');
+        msgDiv.innerText = msg;
+        msgDiv.style.color = isError ? 'red' : 'green';
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', refreshToken);
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+
+    // Au chargement
+    fetchUsers();
+</script>
+</body>
+</html>

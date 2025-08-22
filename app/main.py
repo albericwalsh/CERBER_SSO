@@ -1,4 +1,9 @@
 # app/main.py
+import os
+
+from starlette.responses import FileResponse
+from starlette.staticfiles import StaticFiles
+
 from app.routes import auth
 from datetime import timezone, datetime
 
@@ -19,6 +24,9 @@ app = FastAPI(
     version="1.0.0",
     debug=True  # ⚠️ active le debug en dev (désactive en prod)
 )
+
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # remonte d’un niveau
+app.mount("/public", StaticFiles(directory=os.path.join(BASE_DIR, "public")), name="public")
 
 # ------------------------------------------------------------
 # Middleware CORS (si tu appelles l'API depuis un front séparé)
@@ -50,10 +58,23 @@ async def health():
     }
 
 
+# Simple page d'accueil
 @app.get("/")
 async def root():
     """Page d'accueil simple."""
-    return {"message": "🚀 SafePasseApp SSO en ligne !"}
+    return FileResponse(os.path.join(os.path.dirname(__file__), "../public/index.html"))
+
+# Dashboard admin (exemple)
+@app.get("/admin")
+async def admin_dashboard():
+    """Page d'administration simple."""
+    return FileResponse(os.path.join(os.path.dirname(__file__), "../public/admin.html"))
+
+# Dashboard user (exemple)
+@app.get("/dashboard")
+async def user_dashboard():
+    """Page utilisateur simple."""
+    return FileResponse(os.path.join(os.path.dirname(__file__), "../public/dashboard.html"))
 
 # ⚡ Ici tu ajoutes tes routes au FastAPI app
 app.include_router(auth.router, prefix="/api/v1/sso")

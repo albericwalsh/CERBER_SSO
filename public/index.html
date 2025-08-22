@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CERBER SSO - Auth</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin:0; }
+        .container { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 350px; }
+        h2 { text-align: center; margin-bottom: 1rem; }
+        form { display: none; flex-direction: column; }
+        form.active { display: flex; }
+        input { margin-bottom: 1rem; padding: 0.5rem; border-radius: 5px; border: 1px solid #ccc; }
+        button { padding: 0.5rem; border: none; border-radius: 5px; background-color: #4caf50; color: white; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        .toggle { text-align: center; margin-top: 1rem; cursor: pointer; color: #007bff; }
+        .toggle:hover { text-decoration: underline; }
+        .forgot { text-align: right; margin-bottom: 1rem; cursor: pointer; color: #ff5722; }
+        .forgot:hover { text-decoration: underline; }
+        .message { text-align: center; margin-bottom: 1rem; color: red; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>CERBER SSO</h2>
+    <div class="message" id="message"></div>
+
+    <!-- Login Form -->
+    <form id="login-form" class="active">
+        <input type="email" id="login-email" placeholder="Email" required>
+        <input type="password" id="login-password" placeholder="Mot de passe" required>
+        <div class="forgot" onclick="forgotPassword()">Mot de passe oublié ?</div>
+        <button type="button" onclick="login()">Se connecter</button>
+        <div class="toggle" onclick="switchForm('register')">Pas encore inscrit ? Créez un compte</div>
+    </form>
+
+    <!-- Register Form -->
+    <form id="register-form">
+        <input type="text" id="register-username" placeholder="Nom d'utilisateur" required>
+        <input type="email" id="register-email" placeholder="Email" required>
+        <input type="password" id="register-password" placeholder="Mot de passe" required>
+        <button type="button" onclick="register()">S'inscrire</button>
+        <div class="toggle" onclick="switchForm('login')">Déjà inscrit ? Connectez-vous</div>
+    </form>
+</div>
+
+<script>
+    const messageEl = document.getElementById('message');
+
+    function switchForm(form) {
+        document.getElementById('login-form').classList.remove('active');
+        document.getElementById('register-form').classList.remove('active');
+        document.getElementById(form + '-form').classList.add('active');
+        messageEl.textContent = '';
+    }
+
+    // Login
+    async function login() {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+
+        try {
+            const res = await fetch('/api/v1/sso/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                // Stocker les tokens
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('refresh_token', data.refresh_token);
+
+                // Vérifier si l'utilisateur est admin
+                const profileRes = await fetch('/api/v1/sso/me', {
+                    headers: { 'Authorization': 'Bearer ' + data.access_token }
+                });
+
+                if (!profileRes.ok) {
+                    displayMessage('Impossible de récupérer le profil');
+                    return;
+                }
+
+                const profile = await profileRes.json();
+
+                // Redirection selon le rôle
+                if (profile.is_admin) {
+                    window.location.href = '/admin';
+                } else {
+                    window.location.href = '/dashboard';
+                }
+
+            } else {
+                displayMessage(data.detail || 'Erreur de connexion');
+            }
+
+        } catch (err) {
+            console.error(err);
+            displayMessage('Erreur réseau');
+        }
+    }
+
+    function displayMessage(msg, isError = true) {
+        const msgDiv = document.getElementById('message');
+        if (msgDiv) {
+            msgDiv.innerText = msg;
+            msgDiv.style.color = isError ? 'red' : 'green';
+        } else {
+            alert(msg);
+        }
+    }
+
+    // Register
+    async function register() {
+        const username = document.getElementById('register-username').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+
+        try {
+            const res = await fetch('/api/v1/sso/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, email, password })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                displayMessage('Inscription réussie ! Connectez-vous.', false);
+                switchForm('login');
+            } else {
+                displayMessage(data.detail || 'Erreur d\'inscription');
+            }
+        } catch (err) {
+            displayMessage('Erreur réseau');
+        }
+    }
+
+    // Mot de passe oublié
+    function forgotPassword() {
+        const email = document.getElementById('login-email').value;
+        if (!email) return displayMessage('Veuillez entrer votre email');
+        alert('Fonction "mot de passe oublié" pour '+email+' (à implémenter côté API)');
+    }
+</script>
+
+</body>
+</html>
