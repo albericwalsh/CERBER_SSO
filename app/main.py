@@ -1,14 +1,14 @@
 # app/main.py
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from app.routes import auth
+from datetime import timezone, datetime
+
 try:
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-    from sqlalchemy.exc import OperationalError
-    from sqlalchemy import text
+    from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
+    from app.database import check_db_connection  # Assure-toi que ce module existe
 except ImportError:
-    raise ImportError("Assurez-vous d'avoir installé les dépendances requises : sqlalchemy, pymysql, fastapi, uvicorn.")
-import os
+    raise ImportError("Assurez-vous d'avoir installé les dépendances requises : fastapi, uvicorn.")
+
 
 # ------------------------------------------------------------
 # Crée l'application FastAPI
@@ -37,50 +37,26 @@ app.add_middleware(
 )
 
 # ------------------------------------------------------------
-# Configuration de la base de données
-# ------------------------------------------------------------
-
-DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "3306")
-DB_NAME = os.getenv("DB_NAME", "safepasseapp")
-
-DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-
-# Create the SQLAlchemy engine and session
-try:
-    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-except Exception as e:
-    print(f"Error creating database engine: {e}")
-    raise
-
-def check_db_connection():
-    try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))  # ⚠️ utiliser text()
-        return "ok"
-    except OperationalError as e:
-        return "error: Database connection failed\n" + str(e)
-
-# ------------------------------------------------------------
 # Routes de base
 # ------------------------------------------------------------
 @app.get("/health")
 async def health():
-    """Endpoint de santé (pour monitoring / debug)."""
+    db_status = check_db_connection()
+    status_ok = db_status == "ok"
     return {
-        "status": "ok",
-        "database": check_db_connection()
+        "status": "ok" if status_ok else "error",
+        "database": db_status,
+        "uptime": datetime.now(timezone.utc).isoformat()
     }
+
 
 @app.get("/")
 async def root():
     """Page d'accueil simple."""
     return {"message": "🚀 SafePasseApp SSO en ligne !"}
 
-
+# ⚡ Ici tu ajoutes tes routes au FastAPI app
+app.include_router(auth.router, prefix="/api/v1/sso")
 
 # ------------------------------------------------------------
 # Point d'entrée local

@@ -1,3 +1,6 @@
 .idea/
-*.iml
 .venv/
+.databse/
+*.env*
+*.iml
+*/tests/
