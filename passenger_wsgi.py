@@ -1,45 +1,16 @@
-# passenger_wsgi.py - VERSION DEV
-import importlib
-import sys
-import traceback
+# passenger_wsgi.py
+import os, sys
+from dotenv import load_dotenv
 from a2wsgi import ASGIMiddleware
 
-APP_MODULE = "app.main"  # chemin vers ton module FastAPI
+# Ajoute le chemin de ton projet
+sys.path.insert(0, os.path.dirname(__file__))
 
-# ⚡ Mode dev : affiche toutes les erreurs directement dans le navigateur
-DEV_MODE = True
+# Charge ton .env
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
-def load_app():
-    try:
-        if APP_MODULE in sys.modules:
-            importlib.reload(sys.modules[APP_MODULE])
-        module = importlib.import_module(APP_MODULE)
+# Import de ton app FastAPI
+from app.main import app
 
-        if hasattr(module, "app"):
-            module.app.debug = DEV_MODE  # Active le debug FastAPI si DEV_MODE
-
-        app = ASGIMiddleware(module.app)
-
-        def dev_app(environ, start_response):
-            try:
-                return app(environ, start_response)
-            except Exception as e:
-                # Log complet côté serveur
-                traceback.print_exc()
-                # Affiche la stacktrace dans le navigateur
-                tb = traceback.format_exc()
-                start_response("500 Internal Server Error", [("Content-Type", "text/plain")])
-                return [f"Erreur dans l'application :\n\n{tb}\n\n{e}".encode("utf-8")]
-
-        return dev_app
-
-    except ImportError as e:
-        print(f"Erreur d'importation du module {APP_MODULE}: {e}")
-        traceback.print_exc()
-        def error_app(environ, start_response):
-            tb = traceback.format_exc()
-            start_response("500 Internal Server Error", [("Content-Type", "text/plain")])
-            return [f"Impossible de charger l'application :\n\n{tb}".encode("utf-8")]
-        return error_app
-
-application = load_app()
+# Conversion en WSGI pour Passenger
+application = ASGIMiddleware(app)
