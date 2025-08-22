@@ -23,13 +23,13 @@ def load_app():
         def dev_app(environ, start_response):
             try:
                 return app(environ, start_response)
-            except Exception:
+            except Exception as e:
                 # Log complet côté serveur
                 traceback.print_exc()
                 # Affiche la stacktrace dans le navigateur
                 tb = traceback.format_exc()
                 start_response("500 Internal Server Error", [("Content-Type", "text/plain")])
-                return [f"Erreur dans l'application :\n\n{tb}".encode("utf-8")]
+                return [f"Erreur dans l'application :\n\n{tb}\n\n{e}".encode("utf-8")]
 
         return dev_app
 
