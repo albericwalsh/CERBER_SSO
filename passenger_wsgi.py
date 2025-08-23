@@ -19,6 +19,11 @@ def load_app():
         if db_status != "ok":
             raise ImportError(f"Erreur de connexion à la base de données : {db_status}")
 
+        error_msg = "Vérification du répertoire public"
+        # Vérifie que le répertoire public existe
+        from app.main import check_public_dir
+        check_public_dir()
+
         error_msg = "Importation du module principal"
         if APP_MODULE in sys.modules:
             importlib.reload(sys.modules[APP_MODULE])
