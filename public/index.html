@@ -46,7 +46,7 @@
 </div>
 
 <script>
-    const host = "https://alberic-wds.fr/SSO";
+    const host = "/SSO/api/v1/sso";
     const messageEl = document.getElementById('message');
 
     function switchForm(form) {
@@ -66,7 +66,7 @@
         const password = document.getElementById('login-password').value;
 
         try {
-            const res = await fetch(`${host}/api/v1/sso/login`, {
+            const res = await fetch(`${host}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -82,7 +82,7 @@
             localStorage.setItem('access_token', data.access_token);
             localStorage.setItem('refresh_token', data.refresh_token);
 
-            const profileRes = await fetch(`${host}/api/v1/sso/me`, {
+            const profileRes = await fetch(`${host}/me`, {
                 headers: { 'Authorization': 'Bearer ' + data.access_token }
             });
 
@@ -106,7 +106,7 @@
         const password = document.getElementById('register-password').value;
 
         try {
-            const res = await fetch(`${host}/api/v1/sso/register`, {
+            const res = await fetch(`${host}/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, email, password })
