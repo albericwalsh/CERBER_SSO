@@ -20,11 +20,25 @@ def load_app():
             raise ImportError(f"Erreur de connexion à la base de données : {db_status}")
 
         error_msg = "Vérification du répertoire public"
-        # Vérifie que le répertoire public existe
-        from app.main import check_public_dir
-        error_msg = check_public_dir()
-        if isinstance(error_msg, Exception):
-            raise ImportError(f"Erreur avec le répertoire public : {error_msg}")
+        # verifier le répertoire parent:
+        parent = importlib.import_module("app")
+        if not hasattr(parent, "get_public_path"):
+            error_msg = "La fonction get_public_path est introuvable dans le module app"
+            raise ImportError("La fonction get_public_path est introuvable dans le module app")
+        public_path = parent.get_public_path()
+        if public_path is None:
+            error_msg = "Impossible de déterminer le chemin du répertoire public."
+            raise ImportError("Impossible de déterminer le chemin du répertoire public.")
+        import os
+        if not os.path.isdir(public_path):
+            error_msg = ImportError(
+                f"Le répertoire public est introuvable à l'emplacement : {public_path}\n"
+                f"Contenu du parent ({os.path.dirname(public_path)}) : {os.listdir(os.path.dirname(public_path))}"
+            ).__str__()
+            raise ImportError(
+                f"Le répertoire public est introuvable à l'emplacement : {public_path}\n"
+                f"Contenu du parent ({os.path.dirname(public_path)}) : {os.listdir(os.path.dirname(public_path))}"
+            )
 
         error_msg = "Importation du module principal"
         if APP_MODULE in sys.modules:
