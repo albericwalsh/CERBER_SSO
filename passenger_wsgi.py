@@ -10,14 +10,18 @@ APP_MODULE = "app.main"  # chemin vers ton module FastAPI
 DEV_MODE = True
 
 def load_app():
+    error_msg : str = ""
     try:
+        error_msg = "Importation du module principal"
         if APP_MODULE in sys.modules:
             importlib.reload(sys.modules[APP_MODULE])
         module = importlib.import_module(APP_MODULE)
 
+        error_msg = "Vérification de l'environnement de l'application"
         if hasattr(module, "app"):
             module.app.debug = DEV_MODE  # Active le debug FastAPI si DEV_MODE
 
+        error_msg = "Création du middleware ASGI"
         app = ASGIMiddleware(module.app)
 
         def dev_app(environ, start_response):
@@ -39,7 +43,7 @@ def load_app():
         def error_app(environ, start_response):
             tb = traceback.format_exc()
             start_response("500 Internal Server Error", [("Content-Type", "text/plain")])
-            return [f"Impossible de charger l'application :\n\n{tb}".encode("utf-8")]
+            return [f"Impossible de charger l'application :\n\n{error_msg}\n\n{tb}".encode("utf-8")]
         return error_app
 
 application = load_app()
