@@ -1,0 +1,124 @@
+@host = https://alberic-wds.fr/SSO
+
+###
+# curl -X POST "http://localhost:8000/api/v1/sso/register" -H "Content-Type: application/json" -d "{\"username\":\"alice\",\"email\":\"alice@example.com\",\"password\":\"SuperSecret123\"}"
+POST {{host}}/api/v1/sso/register
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "email": "alice@example.com",
+  "password": "SuperSecret123"
+}
+
+<> 2025-08-22T161721.200.json
+<> 2025-08-22T161537.200.json
+<> 2025-08-22T132527.409.json
+<> 2025-08-22T130328.200.json
+
+###
+
+# curl -X POST "http://localhost:8000/api/v1/sso/login" -H "Content-Type: application/json" -d "{\"email\":\"alice@example.com\",\"password\":\"SuperSecret123\"}"
+POST {{host}}/api/v1/sso/login
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "SuperSecret123"
+}
+
+> {% client.global.set("access_token", response.body['access_token']); client.global.set("refresh_token", response.body['refresh_token']) %}
+
+<> 2025-08-22T162612.200.json
+<> 2025-08-22T161938.200.json
+<> 2025-08-22T161724.200.json
+<> 2025-08-22T161542.200.json
+<> 2025-08-22T132528.200.json
+<> 2025-08-22T130328-1.200.json
+<> 2025-08-22T125648.200.json
+<> 2025-08-22T124914.200.json
+<> 2025-08-22T124544.200.json
+<> 2025-08-22T124257.200.json
+<> 2025-08-22T124205.200.json
+<> 2025-08-22T124116.200.json
+<> 2025-08-22T124032.200.json
+<> 2025-08-22T123716.200.json
+<> 2025-08-22T123407.200.json
+
+
+###
+
+# curl -H "Authorization: Bearer <ACCESS_TOKEN>" "http://localhost:8000/api/v1/sso/me"
+GET {{host}}/api/v1/sso/me
+Authorization: Bearer {{access_token}}
+
+<> 2025-08-22T132528-1.200.json
+<> 2025-08-22T130328-2.200.json
+
+
+###
+
+# curl -X POST "http://localhost:8000/api/v1/sso/refresh" -H "Content-Type: application/json" -d "{\"refresh_token\":\"<REFRESH_TOKEN>\"}"
+POST {{host}}/api/v1/sso/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "{{refresh_token}}"
+}
+> {% client.global.set("access_token", response.body['access_token']); client.global.set("refresh_token", response.body['refresh_token']) %}
+
+<> 2025-08-22T132528-2.200.json
+<> 2025-08-22T130329.200.json
+<> 2025-08-22T125651.200.json
+<> 2025-08-22T124917.200.json
+<> 2025-08-22T124547.401.json
+<> 2025-08-22T123724.401.json
+<> 2025-08-22T123409.401.json
+
+###
+
+PUT {{host}}/api/v1/sso/users/2
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "username": "new_name2",
+  "email": "new_email2@example.com",
+  "is_admin": true
+}
+
+<> 2025-08-22T161940.400.json
+<> 2025-08-22T161810.500.txt
+<> 2025-08-22T161805.404.json
+<> 2025-08-22T161751.500.txt
+<> 2025-08-22T161646.200.json
+<> 2025-08-22T161634.403.json
+<> 2025-08-22T161612.404.json
+
+###
+
+POST {{host}}/api/v1/sso/promote/1
+Authorization: Bearer {{access_token}}
+
+<> 2025-08-22T162732.200.json
+<> 2025-08-22T162715.405.json
+
+###
+
+POST {{host}}/api/v1/sso/demote/1
+Authorization: Bearer {{access_token}}
+
+<> 2025-08-22T162805.200.json
+
+###
+
+PUT {{host}}/api/v1/sso/users/1/password
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "new_password": "NewSuperSecret123"
+}
+
+<> 2025-08-22T162922.200.json
+<> 2025-08-22T162913.200.json
