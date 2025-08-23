@@ -19,6 +19,10 @@ def load_app():
         if db_status != "ok":
             raise ImportError(f"Erreur de connexion à la base de données : {db_status}")
 
+        error_msg = "get public path"
+        import sys, os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        
         error_msg = "La fonction get_public_path est introuvable dans le module app"
         # verifier le répertoire parent:
         from app.main import get_public_path

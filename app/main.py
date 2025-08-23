@@ -23,13 +23,13 @@ except ImportError:
 
 
 def get_public_path():
-    # Point de départ : dossier où Passenger lance le code
-    try:
-        root_dir = os.path.abspath(sys.path[0])
-        public_path = os.path.join(root_dir, "public")
-        return public_path
-    except Exception:
-        return None
+    root_dir = os.path.dirname(os.path.abspath(__file__))  # dossier app/
+    public_path = os.path.join(root_dir, "../public")
+    public_path = os.path.abspath(public_path)
+    if not os.path.isdir(public_path):
+        raise FileNotFoundError(f"Le répertoire public est introuvable : {public_path}")
+    return public_path
+
 
 
 def check_public_dir():
