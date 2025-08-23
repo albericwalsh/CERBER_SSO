@@ -81,6 +81,7 @@
 </div>
 
 <script>
+    const host = "/SSO/api/v1/sso";
     async function fetchProfile() {
         const token = localStorage.getItem('access_token');
         if (!token) {
@@ -89,7 +90,7 @@
         }
 
         try {
-            const res = await fetch('/api/v1/sso/me', {
+            const res = await fetch(`${host}/me`, {
                 headers: {'Authorization': 'Bearer ' + token}
             });
             if (!res.ok) {
@@ -110,7 +111,7 @@
         if (!token) return window.location.href = '/';
 
         try {
-            const res = await fetch('/api/v1/sso/me', {
+            const res = await fetch(`${host}/me`, {
                 headers: {'Authorization': 'Bearer ' + token}
             });
             if (!res.ok) throw new Error('Impossible de récupérer le profil');
@@ -132,7 +133,7 @@
         }
 
         try {
-            const res = await fetch('/api/v1/sso/refresh', {
+            const res = await fetch(`${host}/refresh`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({refresh_token})
@@ -171,7 +172,7 @@
         const email = document.getElementById('profile-email').value;
 
         try {
-            const res = await fetch('/api/v1/sso/users/me', {
+            const res = await fetch(`${host}/users/me`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': 'Bearer ' + token,
@@ -200,7 +201,7 @@
         var id;
         try {
             // get id via /me endpoint
-            const meRes = await fetch('/api/v1/sso/me', {
+            const meRes = await fetch(`${host}/me`, {
                 headers: {'Authorization': 'Bearer ' + token}
             });
             if (meRes.ok) {
@@ -211,7 +212,7 @@
                 return;
             }
 
-            const res = await fetch(`/api/v1/sso/users/${id}/password`, {
+            const res = await fetch(`${host}/users/${id}/password`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': 'Bearer ' + token,

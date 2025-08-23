@@ -176,6 +176,7 @@
 </div>
 
 <script>
+    const host = "/SSO/api/v1/sso";
     async function fetchUsers() {
         const token = localStorage.getItem('access_token');
         if (!token) {
@@ -184,7 +185,7 @@
         }
 
         try {
-            const res = await fetch('/api/v1/sso/users', {
+            const res = await fetch(`${host}/users`, {
                 headers: {'Authorization': 'Bearer ' + token}
             });
             if (!res.ok) {
@@ -222,7 +223,7 @@
         const token = localStorage.getItem('access_token');
         const method = isAdmin ? 'DELETE' : 'POST';
         try {
-            const res = await fetch(`/api/v1/sso/promote/${userId}`, {
+            const res = await fetch(`${host}/promote/${userId}`, {
                 method: method,
                 headers: {'Authorization': 'Bearer ' + token}
             });
@@ -243,7 +244,7 @@
         const token = localStorage.getItem('access_token');
         if (!confirm('Confirmer la suppression de cet utilisateur ?')) return;
         try {
-            const res = await fetch(`/api/v1/sso/${userId}`, {
+            const res = await fetch(`${host}/${userId}`, {
                 method: 'DELETE',
                 headers: {'Authorization': 'Bearer ' + token}
             });
@@ -284,7 +285,7 @@
 
         try {
             // Update des infos de base
-            let res = await fetch(`/api/v1/sso/users/${id}`, {
+            let res = await fetch(`${host}/users/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': 'Bearer ' + token,
@@ -301,7 +302,7 @@
 
             // Si mot de passe fourni → requête séparée
             if (password) {
-                res = await fetch(`/api/v1/sso/users/${id}/password`, {
+                res = await fetch(`${host}/users/${id}/password`, {
                     method: 'PUT',
                     headers: {
                         'Authorization': 'Bearer ' + token,
@@ -334,7 +335,7 @@
         }
 
         try {
-            const res = await fetch('/api/v1/sso/refresh', {
+            const res = await fetch(`${host}/refresh`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({refresh_token})
