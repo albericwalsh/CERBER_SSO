@@ -24,17 +24,20 @@ except ImportError:
 
 def get_public_path():
     # Point de départ : dossier où Passenger lance le code
-    root_dir = os.path.abspath(sys.path[0])
-    public_path = os.path.join(root_dir, "public")
-    return public_path
+    try:
+        root_dir = os.path.abspath(sys.path[0])
+        public_path = os.path.join(root_dir, "public")
+        return public_path
+    except Exception:
+        return None
+
 
 def check_public_dir():
     public_path = get_public_path()
-    if not os.path.isdir(public_path):
-        return FileNotFoundError(
-            f"Le répertoire public '{public_path}' est introuvable.\n"
-            f"Contenu de {os.path.dirname(public_path)} : {os.listdir(os.path.dirname(public_path))}"
-        )
+    if public_path is None:
+        return "Impossible de déterminer le chemin du répertoire public."
+    elif not os.path.isdir(public_path):
+        return "Le répertoire public " + public_path + " est introuvable.\nContenu de " + os.path.dirname(public_path) + " : " + os.listdir(os.path.dirname(public_path)).__str__()
     return public_path
 
 
@@ -71,6 +74,7 @@ except Exception as e:
     print(f"Erreur lors de la création de l'application FastAPI: {e}")
     raise
 
+
 # ------------------------------------------------------------
 # Routes de base
 # ------------------------------------------------------------
@@ -91,17 +95,20 @@ async def root():
     """Page d'accueil simple."""
     return FileResponse(os.path.join(os.path.dirname(__file__), "../public/index.html"))
 
+
 # Dashboard admin (exemple)
 @app.get("/admin")
 async def admin_dashboard():
     """Page d'administration simple."""
     return FileResponse(os.path.join(os.path.dirname(__file__), "../public/admin.html"))
 
+
 # Dashboard user (exemple)
 @app.get("/dashboard")
 async def user_dashboard():
     """Page utilisateur simple."""
     return FileResponse(os.path.join(os.path.dirname(__file__), "../public/dashboard.html"))
+
 
 # ⚡ Ici tu ajoutes tes routes au FastAPI app
 app.include_router(auth.router, prefix="/api/v1/sso")
@@ -111,4 +118,5 @@ app.include_router(auth.router, prefix="/api/v1/sso")
 # ------------------------------------------------------------
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("app.main:app", host="localhost", port=8000, reload=True)
