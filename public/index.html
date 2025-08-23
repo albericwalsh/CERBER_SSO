@@ -99,7 +99,7 @@
 
         } catch (err) {
             console.error(err);
-            displayMessage('Erreur réseau' + err);
+            displayMessage('Erreur réseau:\n' + err);
         }
     }
 
@@ -133,7 +133,7 @@
                 displayMessage(data.detail || 'Erreur d\'inscription');
             }
         } catch (err) {
-            displayMessage('Erreur réseau' + err);
+            displayMessage('Erreur réseau:\n' + err);
         }
     }
 
