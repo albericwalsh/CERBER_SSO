@@ -92,7 +92,7 @@
             }
 
             const profile = await profileRes.json();
-            window.location.href = profile.is_admin ? '/admin' : '/dashboard';
+            window.location.href = profile.is_admin ? 'SSO/admin' : 'SSO/dashboard';
 
         } catch (err) {
             console.error(err);
