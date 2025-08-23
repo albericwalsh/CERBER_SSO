@@ -22,8 +22,9 @@ def load_app():
         error_msg = "get public path"
         import sys, os
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        
-        error_msg = "La fonction get_public_path est introuvable dans le module app"
+        dir_contain = os.listdir(os.path.dirname(os.path.abspath(__file__)))
+
+        error_msg = "La fonction get_public_path est introuvable dans le module app\n" + dir_contain.__str__()
         # verifier le répertoire parent:
         from app.main import get_public_path
         public_path = get_public_path()
