@@ -1,7 +1,7 @@
 # app/main.py
 
 try:
-    import os
+    import os, sys
 
     from starlette.responses import FileResponse
     from starlette.staticfiles import StaticFiles
@@ -21,12 +21,21 @@ except ImportError:
 # Vérifie que le répertoire public existe
 # ------------------------------------------------------------
 
+
+def get_public_path():
+    # Point de départ : dossier où Passenger lance le code
+    root_dir = os.path.abspath(sys.path[0])
+    public_path = os.path.join(root_dir, "public")
+    return public_path
+
 def check_public_dir():
-    """Vérifie que le répertoire public existe."""
-    BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # remonte d’un niveau
-    public_path = os.path.join(BASE_DIR, "public")
+    public_path = get_public_path()
     if not os.path.isdir(public_path):
-        raise FileNotFoundError(f"Le répertoire public '{public_path}' est introuvable. Créez-le et ajoutez-y vos fichiers statiques.")
+        raise FileNotFoundError(
+            f"Le répertoire public '{public_path}' est introuvable.\n"
+            f"Contenu de {os.path.dirname(public_path)} : {os.listdir(os.path.dirname(public_path))}"
+        )
+    return public_path
 
 
 # ------------------------------------------------------------
@@ -40,8 +49,8 @@ try:
         debug=True  # ⚠️ active le debug en dev (désactive en prod)
     )
 
-    BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # remonte d’un niveau
-    app.mount("/public", StaticFiles(directory=os.path.join(BASE_DIR, "public")), name="public")
+    public_path = check_public_dir()
+    app.mount("/public", StaticFiles(directory=public_path), name="public")
 
     # ------------------------------------------------------------
     # Middleware CORS (si tu appelles l'API depuis un front séparé)
