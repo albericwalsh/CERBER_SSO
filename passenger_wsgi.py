@@ -9,23 +9,20 @@ APP_MODULE = "app.main"  # chemin vers ton module FastAPI
 # ⚡ Mode dev : affiche toutes les erreurs directement dans le navigateur
 DEV_MODE = True
 
-def load_app():
-    error_msg : str = ""
-    try:
-        error_msg = "db connection"
-        # Teste la connexion à la base de données avant de charger l'app
-        from app.database import check_db_connection
-        db_status = check_db_connection()
-        if db_status != "ok":
-            raise ImportError(f"Erreur de connexion à la base de données : {db_status}")
 
+def load_app():
+    error_msg: str = ""
+    try:
         error_msg = "get public path"
         import sys, os
+        syspath = sys.path
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         dir_contain = os.listdir(os.path.dirname(os.path.abspath(__file__)))
         dir_app = os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "app"))
 
-        error_msg = "La fonction get_public_path est introuvable dans le module app\n - Root:" + dir_contain.__str__() + "\n ---- App:" + dir_app.__str__()
+        error_msg = ("La fonction get_public_path est introuvable dans le module app\n - "
+                     + syspath.__str__() + " : " + dir_contain.__str__()
+                     + "\n" + syspath.__str__() + "/app : " + dir_app.__str__())
         # verifier le répertoire parent:
         from app.main import get_public_path
         public_path = get_public_path()
@@ -71,10 +68,13 @@ def load_app():
     except ImportError as e:
         print(f"Erreur d'importation du module {APP_MODULE}: {e}")
         traceback.print_exc()
+
         def error_app(environ, start_response):
             tb = traceback.format_exc()
             start_response("500 Internal Server Error", [("Content-Type", "text/plain")])
             return [f"Impossible de charger l'application :\n\n{error_msg}\n\n{tb}".encode("utf-8")]
+
         return error_app
+
 
 application = load_app()
