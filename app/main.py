@@ -33,15 +33,18 @@ def get_public_path():
 
 
 def check_public_dir():
-    public_path = get_public_path()
-    if public_path is None:
-        return FileNotFoundError("Impossible de déterminer le chemin du répertoire public.")
-    elif not os.path.isdir(public_path):
-        return FileNotFoundError(
-            f"Le répertoire public est introuvable à l'emplacement : {public_path}\n"
-            f"Contenu du parent ({os.path.dirname(public_path)}) : {os.listdir(os.path.dirname(public_path))}"
-        )
-    return public_path
+    try:
+        public_path = get_public_path()
+        if public_path is None:
+            return FileNotFoundError("Impossible de déterminer le chemin du répertoire public.")
+        elif not os.path.isdir(public_path):
+            return FileNotFoundError(
+                f"Le répertoire public est introuvable à l'emplacement : {public_path}\n"
+                f"Contenu du parent ({os.path.dirname(public_path)}) : {os.listdir(os.path.dirname(public_path))}"
+            )
+        return public_path
+    except Exception as e:
+        return e
 
 
 # ------------------------------------------------------------
