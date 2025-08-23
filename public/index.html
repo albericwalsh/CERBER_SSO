@@ -46,28 +46,8 @@
 </div>
 
 <script>
+    const host = "https://alberic-wds.fr/SSO";
     const messageEl = document.getElementById('message');
-    // test au chargement de la page
-    window.onload = async () => {
-        try {
-            const res = await fetch('/SSO/api/v1/sso/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: "testuser",
-                    email: "test@example.com",
-                    password: "TestPassword123"
-                })
-            });
-            const text = await res.text();  // récupère la réponse brute
-            // afficher la requête pour debug
-            console.log("Requête envoyée à", res.url);
-            console.log(text);             // afficher la réponse pour debug
-        } catch (err) {
-            console.error("Erreur fetch:", err);
-        }
-    };
-
 
     function switchForm(form) {
         document.getElementById('login-form').classList.remove('active');
@@ -76,13 +56,17 @@
         messageEl.textContent = '';
     }
 
-    // Login
+    function displayMessage(msg, isError = true) {
+        messageEl.innerText = msg;
+        messageEl.style.color = isError ? 'red' : 'green';
+    }
+
     async function login() {
         const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-password').value;
 
         try {
-            const res = await fetch('/SSO/api/v1/sso/login', {
+            const res = await fetch(`${host}/api/v1/sso/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -90,33 +74,25 @@
 
             const data = await res.json();
 
-            if (res.ok) {
-                // Stocker les tokens
-                localStorage.setItem('access_token', data.access_token);
-                localStorage.setItem('refresh_token', data.refresh_token);
-
-                // Vérifier si l'utilisateur est admin
-                const profileRes = await fetch('/SSO/api/v1/sso/me', {
-                    headers: { 'Authorization': 'Bearer ' + data.access_token }
-                });
-
-                if (!profileRes.ok) {
-                    displayMessage('Impossible de récupérer le profil');
-                    return;
-                }
-
-                const profile = await profileRes.json();
-
-                // Redirection selon le rôle
-                if (profile.is_admin) {
-                    window.location.href = '/admin';
-                } else {
-                    window.location.href = '/dashboard';
-                }
-
-            } else {
+            if (!res.ok) {
                 displayMessage(data.detail || 'Erreur de connexion');
+                return;
             }
+
+            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('refresh_token', data.refresh_token);
+
+            const profileRes = await fetch(`${host}/api/v1/sso/me`, {
+                headers: { 'Authorization': 'Bearer ' + data.access_token }
+            });
+
+            if (!profileRes.ok) {
+                displayMessage('Impossible de récupérer le profil');
+                return;
+            }
+
+            const profile = await profileRes.json();
+            window.location.href = profile.is_admin ? '/admin' : '/dashboard';
 
         } catch (err) {
             console.error(err);
@@ -124,45 +100,37 @@
         }
     }
 
-    function displayMessage(msg, isError = true) {
-        const msgDiv = document.getElementById('message');
-        if (msgDiv) {
-            msgDiv.innerText = msg;
-            msgDiv.style.color = isError ? 'red' : 'green';
-        } else {
-            alert(msg);
-        }
-    }
-
-    // Register
     async function register() {
         const username = document.getElementById('register-username').value;
         const email = document.getElementById('register-email').value;
         const password = document.getElementById('register-password').value;
 
         try {
-            const res = await fetch('/SSO/api/v1/sso/register', {
+            const res = await fetch(`${host}/api/v1/sso/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, email, password })
             });
+
             const data = await res.json();
-            if (res.ok) {
-                displayMessage('Inscription réussie ! Connectez-vous.', false);
-                switchForm('login');
-            } else {
+            if (!res.ok) {
                 displayMessage(data.detail || 'Erreur d\'inscription');
+                return;
             }
+
+            displayMessage('Inscription réussie ! Connectez-vous.', false);
+            switchForm('login');
+
         } catch (err) {
+            console.error(err);
             displayMessage('Erreur réseau:\n' + err);
         }
     }
 
-    // Mot de passe oublié
     function forgotPassword() {
         const email = document.getElementById('login-email').value;
         if (!email) return displayMessage('Veuillez entrer votre email');
-        alert('Fonction "mot de passe oublié" pour '+email+' (à implémenter côté API)');
+        alert(`Fonction "mot de passe oublié" pour ${email} (à implémenter côté API)`);
     }
 </script>
 
