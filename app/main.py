@@ -1,48 +1,54 @@
 # app/main.py
-import os
-
-from starlette.responses import FileResponse
-from starlette.staticfiles import StaticFiles
-
-from app.routes import auth
-from datetime import timezone, datetime
 
 try:
+    import os
+
+    from starlette.responses import FileResponse
+    from starlette.staticfiles import StaticFiles
+
+    from app.routes import auth
+    from datetime import timezone, datetime
+
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
     from app.database import check_db_connection  # Assure-toi que ce module existe
 except ImportError:
-    raise ImportError("Assurez-vous d'avoir installé les dépendances requises : fastapi, uvicorn.")
+    print("Assurez-vous d'avoir installé les dépendances requises : run 'pip install -r requirements.txt'.")
+    raise
 
 
 # ------------------------------------------------------------
 # Crée l'application FastAPI
 # ------------------------------------------------------------
-app = FastAPI(
-    title="SafePasseApp SSO",
-    description="Serveur SSO pour SafePasseApp - Auth + JWT",
-    version="1.0.0",
-    debug=True  # ⚠️ active le debug en dev (désactive en prod)
-)
+try:
+    app = FastAPI(
+        title="SafePasseApp SSO",
+        description="Serveur SSO pour SafePasseApp - Auth + JWT",
+        version="1.0.0",
+        debug=True  # ⚠️ active le debug en dev (désactive en prod)
+    )
 
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # remonte d’un niveau
-app.mount("/public", StaticFiles(directory=os.path.join(BASE_DIR, "public")), name="public")
+    BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # remonte d’un niveau
+    app.mount("/public", StaticFiles(directory=os.path.join(BASE_DIR, "public")), name="public")
 
-# ------------------------------------------------------------
-# Middleware CORS (si tu appelles l'API depuis un front séparé)
-# ------------------------------------------------------------
-origins = [
-    "http://localhost:3000",  # ton front local
-    "https://alberic-wds.fr",  # ton domaine
-]
+    # ------------------------------------------------------------
+    # Middleware CORS (si tu appelles l'API depuis un front séparé)
+    # ------------------------------------------------------------
+    origins = [
+        "http://localhost:3000",  # ton front local
+        "https://alberic-wds.fr",  # ton domaine
+    ]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+except Exception as e:
+    print(f"Erreur lors de la création de l'application FastAPI: {e}")
+    raise
 
 # ------------------------------------------------------------
 # Routes de base
