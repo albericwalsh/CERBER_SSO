@@ -31,7 +31,7 @@ def get_public_path():
 def check_public_dir():
     public_path = get_public_path()
     if not os.path.isdir(public_path):
-        raise FileNotFoundError(
+        return FileNotFoundError(
             f"Le répertoire public '{public_path}' est introuvable.\n"
             f"Contenu de {os.path.dirname(public_path)} : {os.listdir(os.path.dirname(public_path))}"
         )

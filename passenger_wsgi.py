@@ -22,7 +22,7 @@ def load_app():
         error_msg = "Vérification du répertoire public"
         # Vérifie que le répertoire public existe
         from app.main import check_public_dir
-        check_public_dir()
+        error_msg = check_public_dir()
 
         error_msg = "Importation du module principal"
         if APP_MODULE in sys.modules:
