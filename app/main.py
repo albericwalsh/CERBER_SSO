@@ -20,12 +20,6 @@ except ImportError:
 # ------------------------------------------------------------
 # Vérifie que le répertoire public existe
 # ------------------------------------------------------------
-
-
-
-
-
-
 def check_public_dir():
     try:
         public_path = get_public_path()
@@ -44,74 +38,77 @@ def check_public_dir():
 # ------------------------------------------------------------
 # Crée l'application FastAPI
 # ------------------------------------------------------------
-try:
-    app = FastAPI(
-        title="SafePasseApp SSO",
-        description="Serveur SSO pour SafePasseApp - Auth + JWT",
-        version="1.0.0",
-        debug=True  # ⚠️ active le debug en dev (désactive en prod)
-    )
+def create_app():
+    try:
+        app = FastAPI(
+            title="SafePasseApp SSO",
+            description="Serveur SSO pour SafePasseApp - Auth + JWT",
+            version="1.0.0",
+            debug=True  # ⚠️ active le debug en dev (désactive en prod)
+        )
 
-    public_path = check_public_dir()
-    app.mount("/public", StaticFiles(directory=public_path), name="public")
+        public_path = check_public_dir()
+        app.mount("/public", StaticFiles(directory=public_path), name="public")
+
+        # ------------------------------------------------------------
+        # Middleware CORS (si tu appelles l'API depuis un front séparé)
+        # ------------------------------------------------------------
+        origins = [
+            "http://localhost:3000",  # ton front local
+            "https://alberic-wds.fr",  # ton domaine
+        ]
+
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    except Exception as e:
+        print(f"Erreur lors de la création de l'application FastAPI: {e}")
+        raise
+
 
     # ------------------------------------------------------------
-    # Middleware CORS (si tu appelles l'API depuis un front séparé)
+    # Routes de base
     # ------------------------------------------------------------
-    origins = [
-        "http://localhost:3000",  # ton front local
-        "https://alberic-wds.fr",  # ton domaine
-    ]
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-except Exception as e:
-    print(f"Erreur lors de la création de l'application FastAPI: {e}")
-    raise
+    @app.get("/health")
+    async def health():
+        db_status = check_db_connection()
+        status_ok = db_status == "ok"
+        return {
+            "status": "ok" if status_ok else "error",
+            "database": db_status,
+            "uptime": datetime.now(timezone.utc).isoformat()
+        }
 
 
-# ------------------------------------------------------------
-# Routes de base
-# ------------------------------------------------------------
-@app.get("/health")
-async def health():
-    db_status = check_db_connection()
-    status_ok = db_status == "ok"
-    return {
-        "status": "ok" if status_ok else "error",
-        "database": db_status,
-        "uptime": datetime.now(timezone.utc).isoformat()
-    }
+    # Simple page d'accueil
+    @app.get("/")
+    async def root():
+        """Page d'accueil simple."""
+        return FileResponse(os.path.join(os.path.dirname(__file__), "../public/index.html"))
 
 
-# Simple page d'accueil
-@app.get("/")
-async def root():
-    """Page d'accueil simple."""
-    return FileResponse(os.path.join(os.path.dirname(__file__), "../public/index.html"))
+    # Dashboard admin (exemple)
+    @app.get("/admin")
+    async def admin_dashboard():
+        """Page d'administration simple."""
+        return FileResponse(os.path.join(os.path.dirname(__file__), "../public/admin.html"))
 
 
-# Dashboard admin (exemple)
-@app.get("/admin")
-async def admin_dashboard():
-    """Page d'administration simple."""
-    return FileResponse(os.path.join(os.path.dirname(__file__), "../public/admin.html"))
+    # Dashboard user (exemple)
+    @app.get("/dashboard")
+    async def user_dashboard():
+        """Page utilisateur simple."""
+        return FileResponse(os.path.join(os.path.dirname(__file__), "../public/dashboard.html"))
 
 
-# Dashboard user (exemple)
-@app.get("/dashboard")
-async def user_dashboard():
-    """Page utilisateur simple."""
-    return FileResponse(os.path.join(os.path.dirname(__file__), "../public/dashboard.html"))
+    # ⚡ Ici tu ajoutes tes routes au FastAPI app
+    app.include_router(auth.router, prefix="/api/v1/sso")
 
-
-# ⚡ Ici tu ajoutes tes routes au FastAPI app
-app.include_router(auth.router, prefix="/api/v1/sso")
+    return app
 
 # ------------------------------------------------------------
 # Point d'entrée local

@@ -13,44 +13,19 @@ DEV_MODE = True
 def load_app():
     error_msg: str = ""
     try:
-        error_msg = "get public path"
-        import sys, os
-        syspath = sys.path
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        dir_contain = os.listdir(os.path.dirname(os.path.abspath(__file__)))
-        dir_app = os.listdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "app"))
-
-        error_msg = ("La fonction get_public_path est introuvable dans le module app\n - "
-                     + syspath.__str__() + " : " + dir_contain.__str__()
-                     + "\n" + syspath.__str__() + "/app : " + dir_app.__str__())
-        # verifier le répertoire parent:
-        from app.config import get_public_path
-        public_path = get_public_path()
-        if public_path is None:
-            error_msg = "Impossible de déterminer le chemin du répertoire public."
-            raise ImportError("Impossible de déterminer le chemin du répertoire public.")
-        import os
-        if not os.path.isdir(public_path):
-            error_msg = ImportError(
-                f"Le répertoire public est introuvable à l'emplacement : {public_path}\n"
-                f"Contenu du parent ({os.path.dirname(public_path)}) : {os.listdir(os.path.dirname(public_path))}"
-            ).__str__()
-            raise ImportError(
-                f"Le répertoire public est introuvable à l'emplacement : {public_path}\n"
-                f"Contenu du parent ({os.path.dirname(public_path)}) : {os.listdir(os.path.dirname(public_path))}"
-            )
-
         error_msg = "Importation du module principal"
-        if APP_MODULE in sys.modules:
-            importlib.reload(sys.modules[APP_MODULE])
-        module = importlib.import_module(APP_MODULE)
+        from app.main import create_app
+        # if APP_MODULE in sys.modules:
+        #     importlib.reload(sys.modules[APP_MODULE])
+        # module = importlib.import_module(APP_MODULE)
 
-        error_msg = "Vérification de l'environnement de l'application"
-        if hasattr(module, "app"):
-            module.app.debug = DEV_MODE  # Active le debug FastAPI si DEV_MODE
+
+        # error_msg = "Vérification de l'environnement de l'application"
+        # if hasattr(module, "app"):
+        #     module.app.debug = DEV_MODE  # Active le debug FastAPI si DEV_MODE
 
         error_msg = "Création du middleware ASGI"
-        app = ASGIMiddleware(module.app)
+        app = ASGIMiddleware(create_app())
 
         def dev_app(environ, start_response):
             try:
