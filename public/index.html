@@ -49,9 +49,21 @@
     const messageEl = document.getElementById('message');
     // test au chargement de la page
     window.onload = async () => {
-        const res = await fetch('/api/v1/sso/register', { ... });
-        const text = await res.text();  // récupère la réponse brute
-        console.log(text);             // voir ce que renvoie le serveur
+        try {
+            const res = await fetch('/api/v1/sso/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: "testuser",
+                    email: "test@example.com",
+                    password: "TestPassword123"
+                })
+            });
+            const text = await res.text();  // récupère la réponse brute
+            console.log(text);             // afficher la réponse pour debug
+        } catch (err) {
+            console.error("Erreur fetch:", err);
+        }
     };
 
 
