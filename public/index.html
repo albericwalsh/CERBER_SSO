@@ -60,6 +60,8 @@
                 })
             });
             const text = await res.text();  // récupère la réponse brute
+            // afficher la requête pour debug
+            console.log("Requête envoyée à", res.url);
             console.log(text);             // afficher la réponse pour debug
         } catch (err) {
             console.error("Erreur fetch:", err);
