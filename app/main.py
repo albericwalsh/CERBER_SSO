@@ -1,11 +1,4 @@
 # app/main.py
-def get_public_path():
-    root_dir = os.path.dirname(os.path.abspath(__file__))  # dossier app/
-    public_path = os.path.join(root_dir, "../public")
-    public_path = os.path.abspath(public_path)
-    if not os.path.isdir(public_path):
-        raise FileNotFoundError(f"Le répertoire public est introuvable : {public_path}")
-    return public_path
 try:
     import os, sys
 
@@ -18,6 +11,7 @@ try:
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
     from app.database import check_db_connection  # Assure-toi que ce module existe
+    from app.config import get_public_path  # Assure-toi que cette fonction est définie dans config.py
 except ImportError:
     print("Assurez-vous d'avoir installé les dépendances requises : run 'pip install -r requirements.txt'.")
     raise

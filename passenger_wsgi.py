@@ -24,7 +24,7 @@ def load_app():
                      + syspath.__str__() + " : " + dir_contain.__str__()
                      + "\n" + syspath.__str__() + "/app : " + dir_app.__str__())
         # verifier le répertoire parent:
-        from app.main import get_public_path
+        from app.config import get_public_path
         public_path = get_public_path()
         if public_path is None:
             error_msg = "Impossible de déterminer le chemin du répertoire public."
