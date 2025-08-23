@@ -23,6 +23,8 @@ def load_app():
         # Vérifie que le répertoire public existe
         from app.main import check_public_dir
         error_msg = check_public_dir()
+        if isinstance(error_msg, Exception):
+            raise ImportError(f"Erreur avec le répertoire public : {error_msg}")
 
         error_msg = "Importation du module principal"
         if APP_MODULE in sys.modules:
