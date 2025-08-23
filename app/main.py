@@ -1,11 +1,33 @@
 # app/main.py
 
-import os
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from starlette.responses import FileResponse
-from starlette.staticfiles import StaticFiles
-from datetime import timezone, datetime
+try:
+    import os
+
+    from starlette.responses import FileResponse
+    from starlette.staticfiles import StaticFiles
+
+    from app.routes import auth
+    from datetime import timezone, datetime
+
+    from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
+    from app.database import check_db_connection  # Assure-toi que ce module existe
+except ImportError:
+    print("Assurez-vous d'avoir installé les dépendances requises : run 'pip install -r requirements.txt'.")
+    raise
+
+
+# ------------------------------------------------------------
+# Vérifie que le répertoire public existe
+# ------------------------------------------------------------
+
+def check_public_dir():
+    """Vérifie que le répertoire public existe."""
+    BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # remonte d’un niveau
+    public_path = os.path.join(BASE_DIR, "public")
+    if not os.path.isdir(public_path):
+        raise FileNotFoundError(f"Le répertoire public '{public_path}' est introuvable. Créez-le et ajoutez-y vos fichiers statiques.")
+
 
 # ------------------------------------------------------------
 # Crée l'application FastAPI
@@ -39,32 +61,6 @@ try:
 except Exception as e:
     print(f"Erreur lors de la création de l'application FastAPI: {e}")
     raise
-
-# ------------------------------------------------------------
-# Safe import des modules
-# ------------------------------------------------------------
-try:
-    from app.routes import auth
-    app.include_router(auth.router, prefix="/api/v1/sso")
-except Exception as e:
-    print("⚠️ Impossible d'importer app.routes.auth:", e)
-
-try:
-    from app.database import check_db_connection
-except Exception as e:
-    print("⚠️ Impossible d'importer app.database:", e)
-    def check_db_connection():
-        return "error"
-
-# ------------------------------------------------------------
-# Statics
-# ------------------------------------------------------------
-ROOT_DIR = os.path.dirname(os.path.dirname(__file__))  # racine projet
-public_path = os.path.join(ROOT_DIR, "public")
-if os.path.isdir(public_path):
-    app.mount("/public", StaticFiles(directory=public_path), name="public")
-else:
-    print("⚠️ Dossier public/ introuvable :", public_path)
 
 # ------------------------------------------------------------
 # Routes de base
