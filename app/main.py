@@ -48,9 +48,6 @@ def create_app():
             debug=True  # ⚠️ active le debug en dev (désactive en prod)
         )
 
-        public_path = check_public_dir()
-        app.mount("/public", StaticFiles(directory=public_path), name="public")
-
         # ------------------------------------------------------------
         # Middleware CORS (si tu appelles l'API depuis un front séparé)
         # ------------------------------------------------------------
@@ -123,6 +120,9 @@ def create_app():
 
         # ⚡ Ici tu ajoutes tes routes au FastAPI app
         app.include_router(auth.router, prefix="/api/v1/sso")
+
+        public_path = check_public_dir()
+        app.mount("/public", StaticFiles(directory=public_path), name="public")
 
         return app
 
