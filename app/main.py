@@ -2,16 +2,17 @@
 try:
     import os, sys
 
-    from starlette.responses import FileResponse
+    from starlette.responses import FileResponse, JSONResponse
     from starlette.staticfiles import StaticFiles
 
     from app.routes import auth
     from datetime import timezone, datetime
 
-    from fastapi import FastAPI
+    from fastapi import FastAPI, Request
     from fastapi.middleware.cors import CORSMiddleware
     from app.database import check_db_connection  # Assure-toi que ce module existe
     from app.config import get_public_path  # Assure-toi que cette fonction est définie dans config.py
+    from app.utils.logger import logger
 except ImportError:
     print("Assurez-vous d'avoir installé les dépendances requises : run 'pip install -r requirements.txt'.")
     raise
@@ -65,50 +66,69 @@ def create_app():
             allow_methods=["*"],
             allow_headers=["*"],
         )
+
+        # ------------------------------------------------------------
+        # Routes de base
+        # ------------------------------------------------------------
+        @app.middleware("http")
+        async def log_exceptions_middleware(request: Request, call_next):
+            try:
+                response = await call_next(request)
+                # Log les erreurs côté client (4xx) si tu veux
+                if response.status_code >= 400:
+                    logger.warning(
+                        "Erreur HTTP %d sur %s %s",
+                        response.status_code, request.method, request.url.path
+                    )
+                return response
+            except Exception as e:
+                # Log complet côté serveur
+                logger.exception("Exception sur %s %s: %s", request.method, request.url.path, str(e))
+                return JSONResponse(
+                    status_code=500,
+                    content={"detail": "Erreur interne du serveur"}
+                )
+
+        @app.get("/health")
+        async def health():
+            db_status = check_db_connection()
+            status_ok = db_status == "ok"
+            return {
+                "status": "ok" if status_ok else "error",
+                "database": db_status,
+                "uptime": datetime.now(timezone.utc).isoformat()
+            }
+
+
+        # Simple page d'accueil
+        @app.get("/")
+        async def root():
+            """Page d'accueil simple."""
+            return FileResponse(os.path.join(os.path.dirname(__file__), "../public/index.html"))
+
+
+        # Dashboard admin (exemple)
+        @app.get("/admin")
+        async def admin_dashboard():
+            """Page d'administration simple."""
+            return FileResponse(os.path.join(os.path.dirname(__file__), "../public/admin.html"))
+
+
+        # Dashboard user (exemple)
+        @app.get("/dashboard")
+        async def user_dashboard():
+            """Page utilisateur simple."""
+            return FileResponse(os.path.join(os.path.dirname(__file__), "../public/dashboard.html"))
+
+
+        # ⚡ Ici tu ajoutes tes routes au FastAPI app
+        app.include_router(auth.router, prefix="/api/v1/sso")
+
+        return app
+
     except Exception as e:
         print(f"Erreur lors de la création de l'application FastAPI: {e}")
         raise
-
-
-    # ------------------------------------------------------------
-    # Routes de base
-    # ------------------------------------------------------------
-    @app.get("/health")
-    async def health():
-        db_status = check_db_connection()
-        status_ok = db_status == "ok"
-        return {
-            "status": "ok" if status_ok else "error",
-            "database": db_status,
-            "uptime": datetime.now(timezone.utc).isoformat()
-        }
-
-
-    # Simple page d'accueil
-    @app.get("/")
-    async def root():
-        """Page d'accueil simple."""
-        return FileResponse(os.path.join(os.path.dirname(__file__), "../public/index.html"))
-
-
-    # Dashboard admin (exemple)
-    @app.get("/admin")
-    async def admin_dashboard():
-        """Page d'administration simple."""
-        return FileResponse(os.path.join(os.path.dirname(__file__), "../public/admin.html"))
-
-
-    # Dashboard user (exemple)
-    @app.get("/dashboard")
-    async def user_dashboard():
-        """Page utilisateur simple."""
-        return FileResponse(os.path.join(os.path.dirname(__file__), "../public/dashboard.html"))
-
-
-    # ⚡ Ici tu ajoutes tes routes au FastAPI app
-    app.include_router(auth.router, prefix="/api/v1/sso")
-
-    return app
 
 # ------------------------------------------------------------
 # Point d'entrée local
