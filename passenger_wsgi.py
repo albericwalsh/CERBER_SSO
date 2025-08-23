@@ -12,6 +12,13 @@ DEV_MODE = True
 def load_app():
     error_msg : str = ""
     try:
+        error_msg = "db connection"
+        # Teste la connexion à la base de données avant de charger l'app
+        from app.database import check_db_connection
+        db_status = check_db_connection()
+        if db_status != "ok":
+            raise ImportError(f"Erreur de connexion à la base de données : {db_status}")
+
         error_msg = "Importation du module principal"
         if APP_MODULE in sys.modules:
             importlib.reload(sys.modules[APP_MODULE])
