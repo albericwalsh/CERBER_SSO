@@ -47,6 +47,10 @@
 
 <script>
     const messageEl = document.getElementById('message');
+    const res = await fetch('/api/v1/sso/register', { ... });
+    const text = await res.text();  // récupère la réponse brute
+    console.log(text);             // voir ce que renvoie le serveur
+
 
     function switchForm(form) {
         document.getElementById('login-form').classList.remove('active');
